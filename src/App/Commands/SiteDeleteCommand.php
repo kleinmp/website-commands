@@ -64,7 +64,7 @@ class SiteDeleteCommand extends SiteCommand
           $this->runProcess(['sudo', 'a2dissite', $this->getSiteName() . '.conf'], ['output' => NULL]);
           $this->runProcess(['sudo', 'service', 'apache2', 'reload']);
           $this->runProcess(['rm', $apacheConfigFile]);
-          $output->writeln(sprintf('Deleted  apache config %s', $apacheConfigFile));
+          $output->writeln(sprintf('Deleted apache config %s', $apacheConfigFile));
         }
         else {
           $output->writeln(sprintf('Apache config %s does not exist.', $apacheConfigFile));

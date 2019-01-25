@@ -123,11 +123,11 @@ class SiteSetupCommand extends SiteCommand
       $rootDir = $this->getRootDir();
       $webrootLinkPath = $this->getWebroot();
       $settingsPath = $webrootLinkPath . '/sites/default';
-      $apacheUser = 'www-data';
+      $apacheGroup = $this->params->get('app.apache_group');
 
       if (!file_exists($settingsPath . '/files')) {
         $this->runProcess(['mkdir', $rootDir . '/public_files']);
-        $this->runProcess(['sudo', 'chown', ':' . $apacheUser, $rootDir . '/public_files']);
+        $this->runProcess(['sudo', 'chown', ':' . $apacheGroup, $rootDir . '/public_files']);
         $this->runProcess(['ln', '-s', $rootDir . '/public_files', $settingsPath . '/files']);
         $output->writeln(sprintf('Created public files directory at %s.', $rootDir . '/public_files'));
       }
@@ -137,7 +137,7 @@ class SiteSetupCommand extends SiteCommand
 
       if (!file_exists($rootDir . '/private_files')) {
         $this->runProcess(['mkdir', $rootDir . '/private_files']);
-        $this->runProcess(['sudo', 'chown', ':' . $apacheUser, $rootDir . '/private_files']);
+        $this->runProcess(['sudo', 'chown', ':' . $apacheGroup, $rootDir . '/private_files']);
         $output->writeln(sprintf('Created private files directory at %s.', $rootDir . '/private_files'));
       }
       else {
@@ -173,8 +173,8 @@ class SiteSetupCommand extends SiteCommand
           if ($settingsFilePath && $version) {
             $args = [
               'dbname' => $this->getDbName(),
-              'username' => 'root',
-              'password' => 'root',
+              'username' => $this->params->get('app.db_user'),
+              'password' => $this->params->get('app.db_password'),
               'file_private_path' => "'" . $rootDir . "/private_files'",
               'site_settings' => $siteSettings,
             ];

@@ -30,7 +30,7 @@ abstract class SiteCommand extends Command
 
     protected function getRootDir()
     {
-      return '/var/www/' . $this->getSiteName();
+      return $this->params->get('app.www_dir') . $this->getSiteName();
     }
 
     protected function getWebroot()
@@ -40,7 +40,7 @@ abstract class SiteCommand extends Command
 
     protected function getApacheConfigPath()
     {
-      return '/etc/apache2/sites-available/' . $this->getSiteName() . '.conf';
+      return $this->params->get('app.apache_conf_dir') . $this->getSiteName() . '.conf';
     }
 
     protected function getDbName()
