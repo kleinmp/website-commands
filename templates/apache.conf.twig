@@ -1,0 +1,28 @@
+<Directory {{ webroot }} >
+  Options -Indexes
+  Options +FollowSymLinks
+  AllowOverride All
+  Require all granted
+
+  # Not a part of Drupal's stock .htaccess but added as a measure of security.
+  <FilesMatch "(^LICENSE|CHANGELOG|MAINTAINERS|INSTALL|UPGRADE|API|README).*\.txt$">
+    Order deny,allow
+    Deny from all
+  </FilesMatch>
+
+  <Files "cron.php">
+    Order Deny,Allow
+    Deny from all
+    Allow from localhost
+    Allow from 127.0.0.1
+  </Files>
+</Directory>
+<VirtualHost *:80>
+  ServerName {{ domain }}
+  DocumentRoot {{ webroot }}
+  <FilesMatch \.php$>
+    SetHandler proxy:fcgi://127.0.0.1:{{ port }}
+  </FilesMatch>
+  LogLevel warn
+  ServerSignature Off
+</VirtualHost>

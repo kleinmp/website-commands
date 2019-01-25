@@ -1,0 +1,22 @@
+#!/usr/bin/env php
+
+<?php
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Symfony\Component\Console\Application;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use App\App\Commands\SiteSetupCommand;
+
+$loader = new Twig_Loader_Filesystem(__DIR__ . '/../templates');
+$twig = new Twig_Environment($loader);
+
+$containerBuilder = new ContainerBuilder();
+$loader = new YamlFileLoader($containerBuilder, new FileLocator(__DIR__ . '/../config'));
+$loader->load('services.yaml');
+
+
+$app = new Application();
+$app->add(new SiteSetupCommand($twig, $containerBuilder->getParameterBag()));
+$app->run();
