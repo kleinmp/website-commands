@@ -90,9 +90,9 @@ class SiteSetupCommand extends SiteCommand
         $apacheConfigFile = $this->getApacheConfigPath();
         $webrootLinkPath = $this->getWebroot();
         $name = $this->getSiteName();
+        $domainSuffix = $this->params->get('app.domain_suffix');
 
         if (!file_exists($apacheConfigFile)) {
-          $domainSuffix = $this->params->get('app.domain_suffix');
           $question = new Question('Please enter the php-fpm port on which to run the site [9001]: ', 9001);
           $port = $this->getHelper('question')->ask($input, $output, $question);
           $template = $this->twig->load('apache.conf.twig');
@@ -114,18 +114,119 @@ class SiteSetupCommand extends SiteCommand
 
     protected function setupDrupal(InputInterface $input, OutputInterface $output)
     {
+      $this->setupDrupalSettings($input, $output);
+      $this->setupDrupalDirs($input, $output);
+    }
+
+    protected function setupDrupalDirs(InputInterface $input, OutputInterface $output)
+    {
+      $rootDir = $this->getRootDir();
+      $webrootLinkPath = $this->getWebroot();
+      $settingsPath = $webrootLinkPath . '/sites/default';
+      $apacheUser = 'www-data';
+
+      if (!file_exists($settingsPath . '/files')) {
+        $this->runProcess(['mkdir', $rootDir . '/public_files']);
+        $this->runProcess(['sudo', 'chown', ':' . $apacheUser, $rootDir . '/public_files']);
+        $this->runProcess(['ln', '-s', $rootDir . '/public_files', $settingsPath . '/files']);
+        $output->writeln(sprintf('Created public files directory at %s.', $rootDir . '/public_files'));
+      }
+      else {
+        $output->writeln('Public files directory already exists.');
+      }
+
+      if (!file_exists($rootDir . '/private_files')) {
+        $this->runProcess(['mkdir', $rootDir . '/private_files']);
+        $this->runProcess(['sudo', 'chown', ':' . $apacheUser, $rootDir . '/private_files']);
+        $output->writeln(sprintf('Created private files directory at %s.', $rootDir . '/private_files'));
+      }
+      else {
+        $output->writeln(sprintf('Private files directory already exists at %s.', $settingsPath . '/private_files'));
+      }
+    }
+
+    protected function setupDrupalSettings(InputInterface $input, OutputInterface $output)
+    {
+        $rootDir = $this->getRootDir();
         $webrootLinkPath = $this->getWebroot();
         $name = $this->getSiteName();
+        $domainSuffix = $this->params->get('app.domain_suffix');
         $settingsPath = $webrootLinkPath . '/sites/default';
-        if (file_exists($settingsPath . '/default.settings.php')) {
-          $siteSettings = file_exists($settingsPath . '/site-settings.php');
-          if (!file_exists($settingsPath . '/settings.php')) {
+        $settingsFilePath = NULL;
 
+        if (file_exists($settingsPath . '/default.settings.php')) {
+          $siteSettings = file_exists($settingsPath . '/site-settings.php') ? "require_once 'site-settings.php'" : NULL;
+          $version = $this->getDrupalVersion();
+          if (!file_exists($settingsPath . '/settings.php')) {
+            $settingsFilePath = $settingsPath . '/settings.php';
           }
           else if (!file_exists($settingsPath . '/settings.local.php')) {
-
+            $process = $this->runProcess([
+              'grep',
+              'settings.local.php',
+              $settingsPath . '/settings.php'
+            ], ['output' => NULL, 'exception' => FALSE]);
+            if ($process->getOutput()) {
+              $settingsFilePath = $settingsPath . '/settings.local.php';
+            }
           }
+          if ($settingsFilePath && $version) {
+            $args = [
+              'dbname' => $this->getDbName(),
+              'username' => 'root',
+              'password' => 'root',
+              'file_private_path' => "'" . $rootDir . "/private_files'",
+              'site_settings' => $siteSettings,
+            ];
+
+            switch ($version) {
+              case 7:
+                $args['base_url'] = $name . '.' . $domainSuffix;
+                break;
+              case 8:
+                $args['trusted_host_pattern'] = "'" . str_replace('.', '\.', '^' . $name . '.' . $domainSuffix . '$') . "'";
+                $args['config_directories'] = NULL;
+                if (is_dir($rootDir . '/config')) {
+                  $args['config_directories'] = "CONFIG_SYNC_DIRECTORY => dirname(DRUPAL_ROOT) . '/config'";
+                  if (is_dir($rootDir . '/config/sync')) {
+                    $args['config_directories'] = "CONFIG_SYNC_DIRECTORY => dirname(DRUPAL_ROOT) . '/config/sync'";
+                  }
+                }
+                break;
+            }
+
+            $template = $this->twig->load("d${version}.settings.php.twig");
+            $settingsFileContents = $template->render($args);
+            file_put_contents($settingsFilePath, $settingsFileContents);
+            $output->writeln(sprintf('Drupal settings file setup at %s.', $settingsFilePath));
+          }
+        }
+        else {
+          $output->writeln(sprintf('Drupal settings file already exists at %s.', $settingsFilePath));
         }
     }
 
+   protected function getDrupalVersion() {
+     $webrootLinkPath = $this->getWebroot();
+     if (file_exists($webrootLinkPath . '/includes/bootstrap.inc')) {
+       $process = $this->runProcess([
+         'grep',
+         "define('VERSION', '7.",
+         $webrootLinkPath . '/includes/bootstrap.inc'
+       ], ['output' => NULL, 'exception' => FALSE]);
+       if ($process->getOutput()) {
+         return 7;
+       }
+     }
+     else if (file_exists($webrootLinkPath . '/core/lib/Drupal.php')) {
+       $process = $this->runProcess([
+         'grep',
+         "const VERSION = '8.",
+         $webrootLinkPath . '/core/lib/Drupal.php'
+       ], ['output' => NULL, 'exception' => FALSE]);
+       if ($process->getOutput()) {
+         return 8;
+       }
+     }
+   }
 }
