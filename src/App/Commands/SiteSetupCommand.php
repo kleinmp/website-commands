@@ -2,46 +2,44 @@
 
 namespace App\App\Commands;
 
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Process\ProcessBuilder;
 use Twig_Environment;
 
-class SiteSetupCommand extends Command
+class SiteSetupCommand extends SiteCommand
 {
     protected static $defaultName = 'app:setup';
-    private $params;
     private $twig;
 
     public function __construct(Twig_Environment $twig, ParameterBag $params) {
       $this->twig = $twig;
-      $this->params = $params;
-      return parent::__construct();
+      return parent::__construct($params);
     }
 
     protected function configure()
     {
         $this->setName('app:setup')
-            ->setDescription('Sets up a local site')
+            ->setDescription('Set up a local site')
             ->setHelp('Sets up a local site.')
             ->addArgument('name', InputArgument::REQUIRED, 'The name of the site.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $name = $input->getArgument('name');
-        $domainSuffix = $this->params->get('app.domain_suffix');
-        $rootDir = '/var/www/' . $name;
-        $webrootLinkPath = $rootDir . '/webroot';
-        $apacheConfigFile = '/etc/apache2/sites-available/' . $name . '.conf';
-        $helper = $this->getHelper('question');
+        $this->setSiteName($input->getArgument('name'));
+        $this->setupDirectory($input, $output);
+        $this->setupDb($input, $output);
+        $this->setupServer($input, $output);
+        $this->setupDrupal($input, $output);
+    }
 
+    protected function setupDirectory(InputInterface $input, OutputInterface $output)
+    {
+        $rootDir = $this->getRootDir();
+        $webrootLinkPath = $this->getWebroot();
         if (!file_exists($rootDir)) {
           $this->runProcess(['mkdir', '-p', $rootDir]);
           $output->writeln(sprintf('Created directory %s', $rootDir));
@@ -52,7 +50,7 @@ class SiteSetupCommand extends Command
 
         if (!file_exists($rootDir . '/code')) {
           $question = new Question('Please enter the git repository (Leave empty to avoid cloning) [NULL]: ', NULL);
-          if ($repo = $helper->ask($input, $output, $question)) {
+          if ($repo = $this->getHelper('question')->ask($input, $output, $question)) {
             $this->runProcess(['git', 'clone', $repo, $rootDir . '/code']);
             $output->writeln(sprintf('Cloned repo to %s', $rootDir . '/code'));
           }
@@ -63,7 +61,7 @@ class SiteSetupCommand extends Command
 
         if (!file_exists($webrootLinkPath) && !is_link($webrootLinkPath)) {
           $question = new Question('Please enter the relative path to the webroot [code]: ', 'code');
-          $webrootPath = $helper->ask($input, $output, $question);
+          $webrootPath = $this->getHelper('question')->ask($input, $output, $question);
           $webrootFullPath = $rootDir . '/' . $webrootPath;
           $this->runProcess(['ln', '-s', $webrootFullPath, $webrootLinkPath]);
           $output->writeln(sprintf('Created symlink %s', $webrootLinkPath));
@@ -71,7 +69,11 @@ class SiteSetupCommand extends Command
         else {
           $output->writeln(sprintf('Symlink %s already exists.', $webrootLinkPath));
         }
+    }
 
+    protected function setupDb(InputInterface $input, OutputInterface $output)
+    {
+        $name = $this->getDbName();
         $process = $this->runProcess(['mysql', '-e', "use $name"], ['exception' => FALSE, 'output' => NULL]);
         if (!$process->isSuccessful()) {
           $this->runProcess(['mysql', '-e', "create database $name"]);
@@ -80,10 +82,18 @@ class SiteSetupCommand extends Command
         else {
           $output->writeln(sprintf('Database %s already exists.', $name));
         }
+    }
+
+    protected function setupServer(InputInterface $input, OutputInterface $output)
+    {
+        $apacheConfigFile = $this->getApacheConfigPath();
+        $webrootLinkPath = $this->getWebroot();
+        $name = $this->getSiteName();
 
         if (!file_exists($apacheConfigFile)) {
+          $domainSuffix = $this->params->get('app.domain_suffix');
           $question = new Question('Please enter the php-fpm port on which to run the site [9001]: ', 9001);
-          $port = $helper->ask($input, $output, $question);
+          $port = $this->getHelper('question')->ask($input, $output, $question);
           $template = $this->twig->load('apache.conf.twig');
           $apacheConfigContents = $template->render([
             'webroot' => $webrootLinkPath,
@@ -99,22 +109,22 @@ class SiteSetupCommand extends Command
           $output->writeln(sprintf('Apache config %s already exists.', $apacheConfigFile));
         }
         $output->writeln(sprintf('The site is available at %s', $name . '.' . $domainSuffix));
-
     }
 
-    protected function runProcess(array $args, array $options = [])
+    protected function setupDrupal(InputInterface $input, OutputInterface $output)
     {
-        $options += [
-          'exception' => TRUE,
-          'output' => function ($type, $buffer) {
-            echo $buffer;
-          },
-        ];
-        $process = new Process($args);
-        $process->run($options['output']);
-        if (!$process->isSuccessful() && $options['exception']) {
-          throw new ProcessFailedException($process);
+        $webrootLinkPath = $this->getWebroot();
+        $name = $this->getSiteName();
+        $settingsPath = $webrootLinkPath . '/sites/default';
+        if (file_exists($settingsPath . '/default.settings.php')) {
+          $siteSettings = file_exists($settingsPath . '/site-settings.php');
+          if (!file_exists($settingsPath . '/settings.php')) {
+
+          }
+          else if (!file_exists($settingsPath . '/settings.local.php')) {
+
+          }
         }
-        return $process;
     }
+
 }
