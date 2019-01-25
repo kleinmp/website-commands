@@ -7,6 +7,7 @@ use Symfony\Component\Console\Application;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use App\App\Commands\SiteDeleteCommand;
 use App\App\Commands\SiteSetupCommand;
 
 $loader = new Twig_Loader_Filesystem(__DIR__ . '/../templates');
@@ -15,8 +16,9 @@ $twig = new Twig_Environment($loader);
 $containerBuilder = new ContainerBuilder();
 $loader = new YamlFileLoader($containerBuilder, new FileLocator(__DIR__ . '/../config'));
 $loader->load('services.yaml');
-
+$params = $containerBuilder->getParameterBag();
 
 $app = new Application();
-$app->add(new SiteSetupCommand($twig, $containerBuilder->getParameterBag()));
+$app->add(new SiteSetupCommand($params, $twig));
+$app->add(new SiteDeleteCommand($params));
 $app->run();

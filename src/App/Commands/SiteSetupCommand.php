@@ -14,7 +14,8 @@ class SiteSetupCommand extends SiteCommand
     protected static $defaultName = 'app:setup';
     private $twig;
 
-    public function __construct(Twig_Environment $twig, ParameterBag $params) {
+    public function __construct(ParameterBag $params, Twig_Environment $twig)
+    {
       $this->twig = $twig;
       return parent::__construct($params);
     }
