@@ -3,13 +3,14 @@
 namespace App\App\Commands;
 
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Question\Question;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\ProcessBuilder;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Twig_Environment;
 
 class SiteSetupCommand extends Command
@@ -29,21 +30,17 @@ class SiteSetupCommand extends Command
         $this->setName('app:setup')
             ->setDescription('Sets up a local site')
             ->setHelp('Sets up a local site.')
-            ->addArgument('name', InputArgument::REQUIRED, 'The name of the site.')
-            ->addArgument('webroot', InputArgument::REQUIRED, 'The path to the webroot.')
-            ->addArgument('fpm-port', InputArgument::OPTIONAL, 'The path to the webroot.');
+            ->addArgument('name', InputArgument::REQUIRED, 'The name of the site.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $name = $input->getArgument('name');
-        $webrootPath = $input->getArgument('webroot');
-        $port = $input->getArgument('fpm-port') ? $input->getArgument('fpm-port') : 9001;
         $domainSuffix = $this->params->get('app.domain_suffix');
         $rootDir = '/var/www/' . $name;
-        $webrootFullPath = $rootDir . '/' . $webrootPath;
         $webrootLinkPath = $rootDir . '/webroot';
         $apacheConfigFile = '/etc/apache2/sites-available/' . $name . '.conf';
+        $helper = $this->getHelper('question');
 
         if (!file_exists($rootDir)) {
           $this->runProcess(['mkdir', '-p', $rootDir]);
@@ -53,15 +50,29 @@ class SiteSetupCommand extends Command
           $output->writeln(sprintf('Directory %s already exists.', $rootDir));
         }
 
+        if (!file_exists($rootDir . '/code')) {
+          $question = new Question('Please enter the git repository (Leave empty to avoid cloning) [NULL]: ', NULL);
+          if ($repo = $helper->ask($input, $output, $question)) {
+            $this->runProcess(['git', 'clone', $repo, $rootDir . '/code']);
+            $output->writeln(sprintf('Cloned repo to %s', $rootDir . '/code'));
+          }
+        }
+        else {
+          $output->writeln(sprintf('Repo already exists at %s', $rootDir . '/code'));
+        }
+
         if (!file_exists($webrootLinkPath) && !is_link($webrootLinkPath)) {
+          $question = new Question('Please enter the relative path to the webroot [code]: ', 'code');
+          $webrootPath = $helper->ask($input, $output, $question);
+          $webrootFullPath = $rootDir . '/' . $webrootPath;
           $this->runProcess(['ln', '-s', $webrootFullPath, $webrootLinkPath]);
-          $output->writeln(sprintf('Created symlink %s', $webrootLink_path));
+          $output->writeln(sprintf('Created symlink %s', $webrootLinkPath));
         }
         else {
           $output->writeln(sprintf('Symlink %s already exists.', $webrootLinkPath));
         }
 
-        $process = $this->runProcess(['mysql', '-e', "use $name"], FALSE);
+        $process = $this->runProcess(['mysql', '-e', "use $name"], ['exception' => FALSE, 'output' => NULL]);
         if (!$process->isSuccessful()) {
           $this->runProcess(['mysql', '-e', "create database $name"]);
           $output->writeln(sprintf('Database %s created.', $name));
@@ -71,14 +82,16 @@ class SiteSetupCommand extends Command
         }
 
         if (!file_exists($apacheConfigFile)) {
-					$template = $this->twig->load('apache.conf.twig');
-					$apacheConfigContents = $template->render([
-						'webroot' => $webrootLinkPath,
-						'domain' => $name . '.' . $domainSuffix,
-						'port' => $port,
-					]);
+          $question = new Question('Please enter the php-fpm port on which to run the site [9001]: ', 9001);
+          $port = $helper->ask($input, $output, $question);
+          $template = $this->twig->load('apache.conf.twig');
+          $apacheConfigContents = $template->render([
+            'webroot' => $webrootLinkPath,
+            'domain' => $name . '.' . $domainSuffix,
+            'port' => $port,
+          ]);
           file_put_contents($apacheConfigFile, $apacheConfigContents);
-          $this->runProcess(['sudo', 'a2ensite', $name . '.conf']);
+          $this->runProcess(['sudo', 'a2ensite', $name . '.conf'], ['output' => NULL]);
           $this->runProcess(['sudo', 'service', 'apache2', 'reload']);
           $output->writeln(sprintf('Created apache config %s', $apacheConfigFile));
         }
@@ -89,11 +102,17 @@ class SiteSetupCommand extends Command
 
     }
 
-    protected function runProcess(array $args, $throwException = TRUE)
+    protected function runProcess(array $args, array $options = [])
     {
+        $options += [
+          'exception' => TRUE,
+          'output' => function ($type, $buffer) {
+            echo $buffer;
+          },
+        ];
         $process = new Process($args);
-				$process->run();
-        if (!$process->isSuccessful() && $throwException) {
+        $process->run($options['output']);
+        if (!$process->isSuccessful() && $options['exception']) {
           throw new ProcessFailedException($process);
         }
         return $process;
