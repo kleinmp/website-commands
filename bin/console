@@ -15,7 +15,10 @@ $twig = new Twig_Environment($loader);
 
 $containerBuilder = new ContainerBuilder();
 $loader = new YamlFileLoader($containerBuilder, new FileLocator(__DIR__ . '/../config'));
-$loader->load('services.yaml');
+$loader->load('default.config.yaml');
+if (file_exists(__DIR__ . '/../config/config.yaml')) {
+  $loader->load('config.yaml');
+}
 $params = $containerBuilder->getParameterBag();
 
 $app = new Application();
