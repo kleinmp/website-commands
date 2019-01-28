@@ -55,8 +55,11 @@ abstract class SiteCommand extends Command
           'output' => function ($type, $buffer) {
             echo $buffer;
           },
+          'cwd' => NULL,
+          'input' => NULL,
+          'timeout' => 60,
         ];
-        $process = new Process($args);
+        $process = new Process($args, $options['cwd'], NULL, $options['input'], $options['timeout']);
         $process->run($options['output']);
         if (!$process->isSuccessful() && $options['exception']) {
           throw new ProcessFailedException($process);

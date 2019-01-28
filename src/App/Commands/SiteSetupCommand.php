@@ -52,7 +52,7 @@ class SiteSetupCommand extends SiteCommand
         if (!file_exists($rootDir . '/code')) {
           $question = new Question('Please enter the git repository (Leave empty to avoid cloning) [NULL]: ', NULL);
           if ($repo = $this->getHelper('question')->ask($input, $output, $question)) {
-            $this->runProcess(['git', 'clone', $repo, $rootDir . '/code']);
+            $this->runProcess(['git', 'clone', $repo, $rootDir . '/code'], ['timeout' => NULL]);
             $output->writeln(sprintf('Cloned repo to %s', $rootDir . '/code'));
           }
         }
