@@ -1,3 +1,7 @@
-# Setup a local website.
+# Commands for managing a local website.
 
-./bin/console app:setup [name] [path-to-webroot]
+Setup website
+./bin/console app:setup [name]
+
+Delete website
+./bin/console app:delete [name]
