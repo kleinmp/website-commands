@@ -71,4 +71,13 @@ class SiteDeleteCommand extends SiteCommand
         }
     }
 
+    protected function deleteSolr(InputInterface $input, OutputInterface $output)
+    {
+      // @todo: messages
+      if ($this->solrCoreCreated()) {
+        // sudo -u solr -- /opt/solr/bin/solr delete -c "$NAME"
+        $this->runProcess(['sudo', '-u', 'solr', '--', $solrPath, 'delete', '-c', $this->getDbName()]);
+      }
+    }
+
 }

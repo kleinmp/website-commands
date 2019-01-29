@@ -11,6 +11,7 @@ abstract class SiteCommand extends Command
 {
     protected $params;
     protected $siteName;
+    protected $solrSchemaPath;
 
     public function __construct(ParameterBag $params)
     {
@@ -21,6 +22,11 @@ abstract class SiteCommand extends Command
     protected function setSiteName(string $name)
     {
       $this->siteName = $name;
+    }
+
+    protected function setSolrSchemaPath(string $path)
+    {
+      $this->solrSchemaPath = $path;
     }
 
     protected function getSiteName()
@@ -46,6 +52,17 @@ abstract class SiteCommand extends Command
     protected function getDbName()
     {
       return $this->getSiteName();
+    }
+
+    protected function getSolrSchemaPath()
+    {
+      return $this->solrSchemaPath;
+    }
+
+    protected function solrCoreCreated()
+    {
+      //@todo: figure this out
+      return FALSE;
     }
 
     protected function runProcess(array $args, array $options = [])

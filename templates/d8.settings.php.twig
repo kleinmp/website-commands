@@ -22,6 +22,7 @@ $settings['file_scan_ignore_directories'] = [
   'bower_components',
 ];
 
+$settings['cache_prefix'] = '{{ dbname }}_';
 $settings['file_private_path'] = {{ file_private_path|raw }};
 $settings['trusted_host_patterns'] = [
   {{ trusted_host_pattern|raw }}
@@ -30,3 +31,28 @@ $settings['trusted_host_patterns'] = [
 $config_directories = [{{ config_directories|raw }}];
 
 {{ site_settings|raw }}
+
+{% if redis %}
+if (class_exists('Redis')) {
+  $settings['redis.connection']['interface'] = 'PhpRedis';
+  $settings['redis.connection']['host']      = '127.0.0.1';
+  $settings['cache']['default'] = 'cache.backend.redis';
+  $settings['cache']['bins']['bootstrap'] = 'cache.backend.chainedfast';
+  $settings['cache']['bins']['discovery'] = 'cache.backend.chainedfast';
+  $settings['cache']['bins']['config'] = 'cache.backend.chainedfast';
+  $settings['container_yamls'][] = 'modules/contrib/redis/example.services.yml';
+}
+{% endif %}
+{% if search_api_solr %}
+$config['search_api.server.solr'] = [
+  'backend_config' => [
+    'connector' => 'standard',
+    'connector_config' => [
+      'host' => 'localhost',
+      'path' => '/solr',
+      'core' => '{{ dbname }}',
+      'port' => '{{ solr_port }}',
+    ],
+  ],
+];
+{% endif %}
