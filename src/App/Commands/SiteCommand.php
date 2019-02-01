@@ -61,8 +61,7 @@ abstract class SiteCommand extends Command
 
     protected function solrCoreCreated()
     {
-      //@todo: figure this out
-      return FALSE;
+      return is_dir($this->params->get('app.solr_data_path') . $this->getSiteName());
     }
 
     protected function runProcess(array $args, array $options = [])

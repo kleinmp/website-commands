@@ -8,6 +8,7 @@ parameters:
     app.solr_version: '6'
     app.solr_port: '8983'
     app.solr_path: '/opt/solr/bin/solr'
+    app.solr_data_path: '/var/lib/solr/data/'
 
 services:
     # default configuration for services in *this* file

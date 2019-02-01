@@ -194,9 +194,9 @@ class SiteSetupCommand extends SiteCommand
               case 8:
                 $args['trusted_host_pattern'] = "'" . str_replace('.', '\.', '^' . $name . '.' . $domainSuffix . '$') . "'";
                 $args['config_directories'] = NULL;
-                if (is_dir($rootDir . 'code/config')) {
+                if (is_dir($rootDir . '/code/config')) {
                   $args['config_directories'] = "CONFIG_SYNC_DIRECTORY => dirname(DRUPAL_ROOT) . '/config'";
-                  if (is_dir($rootDir . 'code/config/sync')) {
+                  if (is_dir($rootDir . '/code/config/sync')) {
                     $args['config_directories'] = "CONFIG_SYNC_DIRECTORY => dirname(DRUPAL_ROOT) . '/config/sync'";
                   }
                 }
@@ -216,8 +216,7 @@ class SiteSetupCommand extends SiteCommand
 
     protected function setupSolr($input, $output)
     {
-        // @todo: messages
-        if ($this->solrCoreCreated()) {
+        if (!$this->solrCoreCreated()) {
           if ($schemaBasePath = $this->getSolrSchemaPath()) {
             $solrVersion = $this->params->get('app.solr_version');
             $solrPath = $this->params->get('app.solr_path');
@@ -225,7 +224,11 @@ class SiteSetupCommand extends SiteCommand
             if (is_dir($schemaPath)) {
               $this->runProcess(['sudo', '-u', 'solr', '--', $solrPath, 'create', '-c', $this->getDbName(), '-d', $schemaPath]);
             }
+            $output->writeln(sprintf('Solr core %s was created.', $this->getDbName()));
           }
+        }
+        else {
+          $output->writeln(sprintf('Solr core %s already exists.', $this->getDbName()));
         }
     }
 
