@@ -27,6 +27,7 @@ $conf = array(
 );
 {{ site_settings|raw }}
 
+$conf['cache_prefix'] = '{{ dbname }}_';
 $conf['file_private_path'] = {{ file_private_path|raw }};
 $conf['404_fast_paths_exclude'] = '/\/(?:styles)|(?:system\/files)\//';
 $conf['404_fast_paths'] = '/\.(?:txt|png|gif|jpe?g|css|js|ico|swf|flv|cgi|bat|pl|dll|exe|asp)$/i';
@@ -36,9 +37,8 @@ $conf['404_fast_html'] = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN"
 {% if redis %}
 if (class_exists('Redis')) {
   $conf['cliient_interface'] = 'PhpRedis';
-  $conf['cache_backends'][] = 'sites/all/modules/contrib/redis/redis.autoload.inc';
+  $conf['cache_backends'][] = '{{ redis }}/redis.autoload.inc';
   $conf['cache_default_class'] = 'Redis_Cache';
-  $conf['cache_prefix'] = array('default' => 'pantheon-redis');
   // Do not use Redis for cache_form (no performance difference).
   $conf['cache_class_cache_form'] = 'DrupalDatabaseCache';
   // Use Redis for Drupal locks (semaphore).

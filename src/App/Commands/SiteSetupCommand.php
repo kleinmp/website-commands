@@ -190,6 +190,7 @@ class SiteSetupCommand extends SiteCommand
             switch ($version) {
               case 7:
                 $args['base_url'] = $name . '.' . $domainSuffix;
+                $args['redis'] = str_replace($this->getWebroot() . '/', '', $args['redis']);
                 break;
               case 8:
                 $args['trusted_host_pattern'] = "'" . str_replace('.', '\.', '^' . $name . '.' . $domainSuffix . '$') . "'";
