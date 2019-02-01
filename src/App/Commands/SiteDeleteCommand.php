@@ -30,6 +30,7 @@ class SiteDeleteCommand extends SiteCommand
         $this->deleteDirectory($input, $output);
         $this->deleteDb($input, $output);
         $this->deleteServer($input, $output);
+        $this->deleteSolr($input, $output);
     }
 
     protected function deleteDirectory(InputInterface $input, OutputInterface $output)
@@ -69,6 +70,18 @@ class SiteDeleteCommand extends SiteCommand
         else {
           $output->writeln(sprintf('Apache config %s does not exist.', $apacheConfigFile));
         }
+    }
+
+    protected function deleteSolr(InputInterface $input, OutputInterface $output)
+    {
+      if ($this->solrCoreCreated()) {
+        $solrPath = $this->params->get('app.solr_path');
+        $this->runProcess(['sudo', '-u', 'solr', '--', $solrPath, 'delete', '-c', $this->getDbName()]);
+        $output->writeln(sprintf('Solr core %s was deleted.', $this->getDbName()));
+      }
+      else {
+        $output->writeln(sprintf('Solr core %s does not exist.', $this->getDbName()));
+      }
     }
 
 }

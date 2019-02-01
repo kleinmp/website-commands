@@ -35,6 +35,7 @@ class SiteSetupCommand extends SiteCommand
         $this->setupDb($input, $output);
         $this->setupServer($input, $output);
         $this->setupDrupal($input, $output);
+        $this->setupSolr($input, $output);
     }
 
     protected function setupDirectory(InputInterface $input, OutputInterface $output)
@@ -52,7 +53,7 @@ class SiteSetupCommand extends SiteCommand
         if (!file_exists($rootDir . '/code')) {
           $question = new Question('Please enter the git repository (Leave empty to avoid cloning) [NULL]: ', NULL);
           if ($repo = $this->getHelper('question')->ask($input, $output, $question)) {
-            $this->runProcess(['git', 'clone', $repo, $rootDir . '/code']);
+            $this->runProcess(['git', 'clone', $repo, $rootDir . '/code'], ['timeout' => NULL]);
             $output->writeln(sprintf('Cloned repo to %s', $rootDir . '/code'));
           }
         }
@@ -157,6 +158,10 @@ class SiteSetupCommand extends SiteCommand
         if (file_exists($settingsPath . '/default.settings.php')) {
           $siteSettings = file_exists($settingsPath . '/site-settings.php') ? "require_once 'site-settings.php'" : NULL;
           $version = $this->getDrupalVersion();
+          if ($solrSchemaPath = $this->drupalModulePath('search_api_solr', $version)) {
+            $this->setSolrSchemaPath($solrSchemaPath);
+          }
+
           if (!file_exists($settingsPath . '/settings.php')) {
             $settingsFilePath = $settingsPath . '/settings.php';
           }
@@ -177,18 +182,22 @@ class SiteSetupCommand extends SiteCommand
               'password' => $this->params->get('app.db_password'),
               'file_private_path' => "'" . $rootDir . "/private_files'",
               'site_settings' => $siteSettings,
+              'search_api_solr' => $solrSchemaPath,
+              'solr_port' => $this->params->get('app.solr_port'),
+              'redis' => $this->drupalModulePath('redis', $version),
             ];
 
             switch ($version) {
               case 7:
                 $args['base_url'] = $name . '.' . $domainSuffix;
+                $args['redis'] = str_replace($this->getWebroot() . '/', '', $args['redis']);
                 break;
               case 8:
                 $args['trusted_host_pattern'] = "'" . str_replace('.', '\.', '^' . $name . '.' . $domainSuffix . '$') . "'";
                 $args['config_directories'] = NULL;
-                if (is_dir($rootDir . '/config')) {
+                if (is_dir($rootDir . '/code/config')) {
                   $args['config_directories'] = "CONFIG_SYNC_DIRECTORY => dirname(DRUPAL_ROOT) . '/config'";
-                  if (is_dir($rootDir . '/config/sync')) {
+                  if (is_dir($rootDir . '/code/config/sync')) {
                     $args['config_directories'] = "CONFIG_SYNC_DIRECTORY => dirname(DRUPAL_ROOT) . '/config/sync'";
                   }
                 }
@@ -206,27 +215,62 @@ class SiteSetupCommand extends SiteCommand
         }
     }
 
-   protected function getDrupalVersion() {
-     $webrootLinkPath = $this->getWebroot();
-     if (file_exists($webrootLinkPath . '/includes/bootstrap.inc')) {
-       $process = $this->runProcess([
-         'grep',
-         "define('VERSION', '7.",
-         $webrootLinkPath . '/includes/bootstrap.inc'
-       ], ['output' => NULL, 'exception' => FALSE]);
-       if ($process->getOutput()) {
-         return 7;
-       }
-     }
-     else if (file_exists($webrootLinkPath . '/core/lib/Drupal.php')) {
-       $process = $this->runProcess([
-         'grep',
-         "const VERSION = '8.",
-         $webrootLinkPath . '/core/lib/Drupal.php'
-       ], ['output' => NULL, 'exception' => FALSE]);
-       if ($process->getOutput()) {
-         return 8;
-       }
-     }
-   }
+    protected function setupSolr($input, $output)
+    {
+        if (!$this->solrCoreCreated()) {
+          if ($schemaBasePath = $this->getSolrSchemaPath()) {
+            $solrVersion = $this->params->get('app.solr_version');
+            $solrPath = $this->params->get('app.solr_path');
+            $schemaPath = $schemaBasePath . '/solr-conf/' . $solrVersion . '.x';
+            if (is_dir($schemaPath)) {
+              $this->runProcess(['sudo', '-u', 'solr', '--', $solrPath, 'create', '-c', $this->getDbName(), '-d', $schemaPath]);
+            }
+            $output->writeln(sprintf('Solr core %s was created.', $this->getDbName()));
+          }
+        }
+        else {
+          $output->writeln(sprintf('Solr core %s already exists.', $this->getDbName()));
+        }
+    }
+
+    protected function getDrupalVersion() {
+      $webrootLinkPath = $this->getWebroot();
+      if (file_exists($webrootLinkPath . '/includes/bootstrap.inc')) {
+        $process = $this->runProcess([
+          'grep',
+          "define('VERSION', '7.",
+          $webrootLinkPath . '/includes/bootstrap.inc'
+        ], ['output' => NULL, 'exception' => FALSE]);
+        if ($process->getOutput()) {
+          return 7;
+        }
+      }
+      else if (file_exists($webrootLinkPath . '/core/lib/Drupal.php')) {
+        $process = $this->runProcess([
+          'grep',
+          "const VERSION = '8.",
+          $webrootLinkPath . '/core/lib/Drupal.php'
+        ], ['output' => NULL, 'exception' => FALSE]);
+        if ($process->getOutput()) {
+          return 8;
+        }
+      }
+    }
+
+    protected function drupalModulePath($module, $version = NULL)
+    {
+      if (empty($version)) {
+        $version = $this->getDrupalVersion();
+      }
+      $modulePaths = ['modules/contrib/'];
+      if ($version < 8) {
+        $modulePaths = ['sites/default/modules/', 'sites/all/modules/', 'sites/default/modules/contrib/', 'sites/all/modules/contrib/'];
+      }
+      foreach ($modulePaths as $path) {
+        if (is_dir($this->getWebroot() . '/' . $path . $module)) {
+          return $this->getWebroot() . '/' . $path . $module;
+        }
+      }
+      return NULL;
+    }
 }

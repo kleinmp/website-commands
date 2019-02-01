@@ -11,6 +11,7 @@ abstract class SiteCommand extends Command
 {
     protected $params;
     protected $siteName;
+    protected $solrSchemaPath;
 
     public function __construct(ParameterBag $params)
     {
@@ -21,6 +22,11 @@ abstract class SiteCommand extends Command
     protected function setSiteName(string $name)
     {
       $this->siteName = $name;
+    }
+
+    protected function setSolrSchemaPath(string $path)
+    {
+      $this->solrSchemaPath = $path;
     }
 
     protected function getSiteName()
@@ -48,6 +54,16 @@ abstract class SiteCommand extends Command
       return $this->getSiteName();
     }
 
+    protected function getSolrSchemaPath()
+    {
+      return $this->solrSchemaPath;
+    }
+
+    protected function solrCoreCreated()
+    {
+      return is_dir($this->params->get('app.solr_data_path') . $this->getSiteName());
+    }
+
     protected function runProcess(array $args, array $options = [])
     {
         $options += [
@@ -55,8 +71,11 @@ abstract class SiteCommand extends Command
           'output' => function ($type, $buffer) {
             echo $buffer;
           },
+          'cwd' => NULL,
+          'input' => NULL,
+          'timeout' => 60,
         ];
-        $process = new Process($args);
+        $process = new Process($args, $options['cwd'], NULL, $options['input'], $options['timeout']);
         $process->run($options['output']);
         if (!$process->isSuccessful() && $options['exception']) {
           throw new ProcessFailedException($process);

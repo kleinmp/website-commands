@@ -5,6 +5,10 @@ parameters:
     app.apache_group: 'www-data'
     app.db_user: 'root'
     app.db_password: 'root'
+    app.solr_version: '6'
+    app.solr_port: '8983'
+    app.solr_path: '/opt/solr/bin/solr'
+    app.solr_data_path: '/var/lib/solr/data/'
 
 services:
     # default configuration for services in *this* file
