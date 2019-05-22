@@ -38,7 +38,7 @@ class SiteDbImportCommand extends SiteCommand
         }
 
         $dbName = $this->getDbName();
-        $process = $this->runProcess(['mysql', '-e', "drop database $dbName"], ['exception' => FALSE]);
+        $this->runProcess(['mysql', '-e', "drop database $dbName"], ['exception' => FALSE]);
         $this->runProcess(['mysql', '-e', "create database $dbName"]);
         $this->runProcess(['mysql', $dbName, '-e', "source $sqlPath"], ['output' => NULL, 'timeout' => NULL]);
         $output->writeln(sprintf('Imported new db to %s', $dbName));

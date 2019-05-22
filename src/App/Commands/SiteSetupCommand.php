@@ -127,7 +127,9 @@ class SiteSetupCommand extends SiteCommand
       $apacheGroup = $this->params->get('app.apache_group');
 
       if (!file_exists($settingsPath . '/files')) {
-        $this->runProcess(['mkdir', $rootDir . '/public_files']);
+        if (!file_exists($rootDir . '/public_files')) {
+          $this->runProcess(['mkdir', $rootDir . '/public_files']);
+        }
         $this->runProcess(['sudo', 'chown', ':' . $apacheGroup, $rootDir . '/public_files']);
         $this->runProcess(['ln', '-s', $rootDir . '/public_files', $settingsPath . '/files']);
         $output->writeln(sprintf('Created public files directory at %s.', $rootDir . '/public_files'));
@@ -156,7 +158,7 @@ class SiteSetupCommand extends SiteCommand
         $settingsFilePath = NULL;
 
         if (file_exists($settingsPath . '/default.settings.php')) {
-          $siteSettings = file_exists($settingsPath . '/site-settings.php') ? "require_once 'site-settings.php'" : NULL;
+          $siteSettings = file_exists($settingsPath . '/site-settings.php') ? "require_once 'site-settings.php';" : NULL;
           $version = $this->getDrupalVersion();
           if ($solrSchemaPath = $this->drupalModulePath('search_api_solr', $version)) {
             $this->setSolrSchemaPath($solrSchemaPath);
