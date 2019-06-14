@@ -63,7 +63,7 @@ class DeleteCommand extends Command
         $apacheConfigFile = $this->getApacheConfigPath();
         if (file_exists($apacheConfigFile)) {
           $this->runProcess(['sudo', 'a2dissite', $this->getSiteName() . '.conf'], ['output' => NULL]);
-          $this->runProcess(['sudo', 'service', 'apache2', 'reload']);
+          $this->runProcess(['sudo', 'systemctl', 'reload', 'apache2']);
           $this->runProcess(['rm', $apacheConfigFile]);
           $output->writeln(sprintf('Deleted apache config %s', $apacheConfigFile));
         }
