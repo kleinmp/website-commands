@@ -104,7 +104,7 @@ class SetupCommand extends Command
           ]);
           file_put_contents($apacheConfigFile, $apacheConfigContents);
           $this->runProcess(['sudo', 'a2ensite', $name . '.conf'], ['output' => NULL]);
-          $this->runProcess(['sudo', 'service', 'apache2', 'reload']);
+          $this->runProcess(['sudo', 'systemctl', 'reload', 'apache2']);
           $output->writeln(sprintf('Created apache config %s', $apacheConfigFile));
         }
         else {

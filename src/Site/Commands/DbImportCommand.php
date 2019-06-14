@@ -32,7 +32,7 @@ class DbImportCommand extends Command
         if ($sqlFile['extension'] != 'sql') {
           throw new InvalidArgumentException(sprintf('%s is not a valid sql file.', $sqlPath));
         }
-        $question = new ConfirmationQuestion(sprintf('Are you sure you want to import a new db into %s?  This will delete the current db. [no]: ', $this->getDbName()), false);
+        $question = new ConfirmationQuestion(sprintf('Are you sure you want to import a new db into %s?  This will delete the current db. (yes/no) [no]: ', $this->getDbName()), false);
         if (!$this->getHelper('question')->ask($input, $output, $question)) {
           return;
         }

@@ -28,5 +28,5 @@ $app = new Application();
 $app->add(new SetupCommand($params, $twig));
 $app->add(new DeleteCommand($params));
 $app->add(new DbImportCommand($params));
-$app->add(new InstallPhp($params));
+$app->add(new InstallPhp($params, $twig));
 $app->run();
