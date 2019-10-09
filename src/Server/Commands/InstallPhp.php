@@ -46,7 +46,7 @@ class InstallPhp extends Command
         $phpVersionScriptPath = $this->params->get('server.php_version_script_path');
         if (!file_exists($phpVersionScriptPath)) {
           $output->writeln('Installed php-version script.');
-          $this->runProcess(['sudo', 'cp', '../templates/php-version', $phpVersionScriptPath]);
+          $this->runProcess(['sudo', 'cp', 'templates/php-version', $phpVersionScriptPath]);
           $this->runProcess(['sudo', 'chmod', '+x', $phpVersionScriptPath]);
         }
     }
@@ -80,6 +80,10 @@ class InstallPhp extends Command
         array_walk($packages, function(&$package) use ($version) {
           $package = 'php' . $version . '-' . $package;
         });
+        $packages += [
+          'php-igbinary',
+          'php-redis',
+        ];
         $command = ['sudo', 'apt-get', 'install', '-y', 'php' . $version] + $packages;
         $this->runProcess($command);
         $output->writeln(sprintf('Installed php version %s packages: %s', $version, implode(', ', $packages)));
