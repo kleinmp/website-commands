@@ -44,7 +44,7 @@ abstract class Command extends BaseCommand
 
     protected function getDbName()
     {
-      return $this->getSiteName();
+      return str_replace('-', '_', $this->getSiteName());
     }
 
     protected function getSolrSchemaPath()
