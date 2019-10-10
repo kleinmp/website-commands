@@ -1,19 +1,19 @@
 <?php
 
-namespace App\App\Commands;
+namespace App\Site\Commands;
 
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 
-class SiteDeleteCommand extends SiteCommand
+class DeleteCommand extends Command
 {
-    protected static $defaultName = 'app:delete';
+    protected static $defaultName = 'site:delete';
 
     protected function configure()
     {
-        $this->setName('app:delete')
+        $this->setName(self::$defaultName)
             ->setDescription('Delete local site')
             ->setHelp('Delete local site.')
             ->addArgument('name', InputArgument::REQUIRED, 'The name of the site.');
@@ -63,7 +63,7 @@ class SiteDeleteCommand extends SiteCommand
         $apacheConfigFile = $this->getApacheConfigPath();
         if (file_exists($apacheConfigFile)) {
           $this->runProcess(['sudo', 'a2dissite', $this->getSiteName() . '.conf'], ['output' => NULL]);
-          $this->runProcess(['sudo', 'service', 'apache2', 'reload']);
+          $this->runProcess(['sudo', 'systemctl', 'reload', 'apache2']);
           $this->runProcess(['rm', $apacheConfigFile]);
           $output->writeln(sprintf('Deleted apache config %s', $apacheConfigFile));
         }
@@ -75,7 +75,7 @@ class SiteDeleteCommand extends SiteCommand
     protected function deleteSolr(InputInterface $input, OutputInterface $output)
     {
       if ($this->solrCoreCreated()) {
-        $solrPath = $this->params->get('app.solr_path');
+        $solrPath = $this->params->get('site.solr_path');
         $this->runProcess(['sudo', '-u', 'solr', '--', $solrPath, 'delete', '-c', $this->getDbName()]);
         $output->writeln(sprintf('Solr core %s was deleted.', $this->getDbName()));
       }

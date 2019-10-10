@@ -7,9 +7,11 @@ use Symfony\Component\Console\Application;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
-use App\App\Commands\SiteDbImportCommand;
-use App\App\Commands\SiteDeleteCommand;
-use App\App\Commands\SiteSetupCommand;
+
+use App\Server\Commands\InstallPhp;
+use App\Site\Commands\DbImportCommand;
+use App\Site\Commands\DeleteCommand;
+use App\Site\Commands\SetupCommand;
 
 $loader = new Twig_Loader_Filesystem(__DIR__ . '/../templates');
 $twig = new Twig_Environment($loader);
@@ -23,7 +25,8 @@ if (file_exists(__DIR__ . '/../config/config.yaml')) {
 $params = $containerBuilder->getParameterBag();
 
 $app = new Application();
-$app->add(new SiteSetupCommand($params, $twig));
-$app->add(new SiteDeleteCommand($params));
-$app->add(new SiteDbImportCommand($params));
+$app->add(new SetupCommand($params, $twig));
+$app->add(new DeleteCommand($params));
+$app->add(new DbImportCommand($params));
+$app->add(new InstallPhp($params, $twig));
 $app->run();

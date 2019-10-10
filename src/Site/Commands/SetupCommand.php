@@ -1,6 +1,6 @@
 <?php
 
-namespace App\App\Commands;
+namespace App\Site\Commands;
 
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -9,9 +9,9 @@ use Symfony\Component\Console\Question\Question;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Twig_Environment;
 
-class SiteSetupCommand extends SiteCommand
+class SetupCommand extends Command
 {
-    protected static $defaultName = 'app:setup';
+    protected static $defaultName = 'site:setup';
     private $twig;
 
     public function __construct(ParameterBag $params, Twig_Environment $twig)
@@ -22,7 +22,7 @@ class SiteSetupCommand extends SiteCommand
 
     protected function configure()
     {
-        $this->setName('app:setup')
+        $this->setName(self::$defaultName)
             ->setDescription('Set up a local site')
             ->setHelp('Sets up a local site.')
             ->addArgument('name', InputArgument::REQUIRED, 'The name of the site.');
@@ -91,7 +91,7 @@ class SiteSetupCommand extends SiteCommand
         $apacheConfigFile = $this->getApacheConfigPath();
         $webrootLinkPath = $this->getWebroot();
         $name = $this->getSiteName();
-        $domainSuffix = $this->params->get('app.domain_suffix');
+        $domainSuffix = $this->params->get('site.domain_suffix');
 
         if (!file_exists($apacheConfigFile)) {
           $question = new Question('Please enter the php-fpm port on which to run the site [9001]: ', 9001);
@@ -104,7 +104,7 @@ class SiteSetupCommand extends SiteCommand
           ]);
           file_put_contents($apacheConfigFile, $apacheConfigContents);
           $this->runProcess(['sudo', 'a2ensite', $name . '.conf'], ['output' => NULL]);
-          $this->runProcess(['sudo', 'service', 'apache2', 'reload']);
+          $this->runProcess(['sudo', 'systemctl', 'reload', 'apache2']);
           $output->writeln(sprintf('Created apache config %s', $apacheConfigFile));
         }
         else {
@@ -124,7 +124,7 @@ class SiteSetupCommand extends SiteCommand
       $rootDir = $this->getRootDir();
       $webrootLinkPath = $this->getWebroot();
       $settingsPath = $webrootLinkPath . '/sites/default';
-      $apacheGroup = $this->params->get('app.apache_group');
+      $apacheGroup = $this->params->get('site.apache_group');
 
       if (!file_exists($settingsPath . '/files')) {
         if (!file_exists($rootDir . '/public_files')) {
@@ -153,7 +153,7 @@ class SiteSetupCommand extends SiteCommand
         $rootDir = $this->getRootDir();
         $webrootLinkPath = $this->getWebroot();
         $name = $this->getSiteName();
-        $domainSuffix = $this->params->get('app.domain_suffix');
+        $domainSuffix = $this->params->get('site.domain_suffix');
         $settingsPath = $webrootLinkPath . '/sites/default';
         $settingsFilePath = NULL;
 
@@ -180,12 +180,12 @@ class SiteSetupCommand extends SiteCommand
           if ($settingsFilePath && $version) {
             $args = [
               'dbname' => $this->getDbName(),
-              'username' => $this->params->get('app.db_user'),
-              'password' => $this->params->get('app.db_password'),
+              'username' => $this->params->get('site.db_user'),
+              'password' => $this->params->get('site.db_password'),
               'file_private_path' => "'" . $rootDir . "/private_files'",
               'site_settings' => $siteSettings,
               'search_api_solr' => $solrSchemaPath,
-              'solr_port' => $this->params->get('app.solr_port'),
+              'solr_port' => $this->params->get('site.solr_port'),
               'redis' => $this->drupalModulePath('redis', $version),
             ];
 
@@ -221,8 +221,8 @@ class SiteSetupCommand extends SiteCommand
     {
         if (!$this->solrCoreCreated()) {
           if ($schemaBasePath = $this->getSolrSchemaPath()) {
-            $solrVersion = $this->params->get('app.solr_version');
-            $solrPath = $this->params->get('app.solr_path');
+            $solrVersion = $this->params->get('site.solr_version');
+            $solrPath = $this->params->get('site.solr_path');
             $schemaPath = $schemaBasePath . '/solr-conf/' . $solrVersion . '.x';
             if (is_dir($schemaPath)) {
               $this->runProcess(['sudo', '-u', 'solr', '--', $solrPath, 'create', '-c', $this->getDbName(), '-d', $schemaPath]);

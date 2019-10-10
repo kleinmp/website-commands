@@ -1,0 +1,24 @@
+#!/bin/bash
+
+VERSION=$1
+BINARY="/usr/bin/php$VERSION"
+PHPIZE="/usr/bin/phpize$VERSION"
+
+if [ -z "$VERSION" ]; then
+  echo 'You must indicate a version of php (e.g. 7.1)'
+  echo ''
+  php -v
+  exit 1
+fi
+
+if [ ! -e $BINARY ]; then
+  echo 'That is not a valid version'
+  exit 1
+fi
+
+sudo update-alternatives --set php /usr/bin/php$VERSION
+if [ -e $PHPIZE ]; then
+  sudo update-alternatives --set phpize /usr/bin/phpize$VERSION
+  sudo update-alternatives --set php-config /usr/bin/php-config$VERSION
+fi
+echo "Switched to PHP $VERSION"

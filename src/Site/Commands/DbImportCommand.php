@@ -1,6 +1,6 @@
 <?php
 
-namespace App\App\Commands;
+namespace App\Site\Commands;
 
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputArgument;
@@ -8,13 +8,13 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 
-class SiteDbImportCommand extends SiteCommand
+class DbImportCommand extends Command
 {
-    protected static $defaultName = 'app:dbimport';
+    protected static $defaultName = 'site:dbimport';
 
     protected function configure()
     {
-        $this->setName('app:dbimport')
+        $this->setName(self::$defaultName)
             ->setDescription('Import db into local site')
             ->setHelp('Import db into local site.')
             ->addArgument('name', InputArgument::REQUIRED, 'The name of the site.')
@@ -32,7 +32,7 @@ class SiteDbImportCommand extends SiteCommand
         if ($sqlFile['extension'] != 'sql') {
           throw new InvalidArgumentException(sprintf('%s is not a valid sql file.', $sqlPath));
         }
-        $question = new ConfirmationQuestion(sprintf('Are you sure you want to import a new db into %s?  This will delete the current db. [no]: ', $this->getDbName()), false);
+        $question = new ConfirmationQuestion(sprintf('Are you sure you want to import a new db into %s?  This will delete the current db. (yes/no) [no]: ', $this->getDbName()), false);
         if (!$this->getHelper('question')->ask($input, $output, $question)) {
           return;
         }
