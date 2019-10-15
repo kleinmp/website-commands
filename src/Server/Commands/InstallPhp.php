@@ -46,7 +46,7 @@ class InstallPhp extends Command
         $phpVersionScriptPath = $this->params->get('server.php_version_script_path');
         if (!file_exists($phpVersionScriptPath)) {
           $output->writeln('Installed php-version script.');
-          $this->runProcess(['sudo', 'cp', 'templates/php-version', $phpVersionScriptPath]);
+          $this->runProcess(['ls', __DIR__ . '/../../../templates/php-version']);
           $this->runProcess(['sudo', 'chmod', '+x', $phpVersionScriptPath]);
         }
     }
