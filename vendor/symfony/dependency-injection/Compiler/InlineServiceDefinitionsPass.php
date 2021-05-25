@@ -26,10 +26,10 @@ class InlineServiceDefinitionsPass extends AbstractRecursivePass implements Repe
 {
     private $analyzingPass;
     private $repeatedPass;
-    private $cloningIds = array();
-    private $connectedIds = array();
-    private $notInlinedIds = array();
-    private $inlinedIds = array();
+    private $cloningIds = [];
+    private $connectedIds = [];
+    private $notInlinedIds = [];
+    private $inlinedIds = [];
     private $graph;
 
     public function __construct(AnalyzeServiceReferencesPass $analyzingPass = null)
@@ -60,6 +60,7 @@ class InlineServiceDefinitionsPass extends AbstractRecursivePass implements Repe
             $analyzedContainer = $container;
         }
         try {
+            $remainingInlinedIds = [];
             $this->connectedIds = $this->notInlinedIds = $container->getDefinitions();
             do {
                 if ($this->analyzingPass) {
@@ -68,7 +69,7 @@ class InlineServiceDefinitionsPass extends AbstractRecursivePass implements Repe
                 }
                 $this->graph = $analyzedContainer->getCompiler()->getServiceReferenceGraph();
                 $notInlinedIds = $this->notInlinedIds;
-                $this->connectedIds = $this->notInlinedIds = $this->inlinedIds = array();
+                $this->connectedIds = $this->notInlinedIds = $this->inlinedIds = [];
 
                 foreach ($analyzedContainer->getDefinitions() as $id => $definition) {
                     if (!$this->graph->hasNode($id)) {
@@ -83,8 +84,10 @@ class InlineServiceDefinitionsPass extends AbstractRecursivePass implements Repe
                     }
                 }
 
-                foreach ($this->inlinedIds as $id => $isPublic) {
-                    if (!$isPublic) {
+                foreach ($this->inlinedIds as $id => $isPublicOrNotShared) {
+                    if ($isPublicOrNotShared) {
+                        $remainingInlinedIds[$id] = $id;
+                    } else {
                         $container->removeDefinition($id);
                         $analyzedContainer->removeDefinition($id);
                     }
@@ -94,9 +97,17 @@ class InlineServiceDefinitionsPass extends AbstractRecursivePass implements Repe
             if ($this->inlinedIds && $this->repeatedPass) {
                 $this->repeatedPass->setRepeat();
             }
+
+            foreach ($remainingInlinedIds as $id) {
+                $definition = $container->getDefinition($id);
+
+                if (!$definition->isShared() && !$definition->isPublic()) {
+                    $container->removeDefinition($id);
+                }
+            }
         } finally {
             $this->container = null;
-            $this->connectedIds = $this->notInlinedIds = $this->inlinedIds = array();
+            $this->connectedIds = $this->notInlinedIds = $this->inlinedIds = [];
             $this->graph = null;
         }
     }
@@ -131,7 +142,7 @@ class InlineServiceDefinitionsPass extends AbstractRecursivePass implements Repe
         }
 
         $this->container->log($this, sprintf('Inlined service "%s" to "%s".', $id, $this->currentId));
-        $this->inlinedIds[$id] = $definition->isPublic();
+        $this->inlinedIds[$id] = $definition->isPublic() || !$definition->isShared();
         $this->notInlinedIds[$this->currentId] = true;
 
         if ($definition->isShared()) {
@@ -193,7 +204,7 @@ class InlineServiceDefinitionsPass extends AbstractRecursivePass implements Repe
         }
         $this->connectedIds[$id] = true;
 
-        $srcIds = array();
+        $srcIds = [];
         $srcCount = 0;
         $isReferencedByConstructor = false;
         foreach ($this->graph->getNode($id)->getInEdges() as $edge) {
@@ -214,10 +225,6 @@ class InlineServiceDefinitionsPass extends AbstractRecursivePass implements Repe
         }
 
         if ($srcCount > 1 && \is_array($factory = $definition->getFactory()) && ($factory[0] instanceof Reference || $factory[0] instanceof Definition)) {
-            return false;
-        }
-
-        if ($isReferencedByConstructor && $this->container->getDefinition($srcId)->isLazy() && ($definition->getProperties() || $definition->getMethodCalls() || $definition->getConfigurator())) {
             return false;
         }
 

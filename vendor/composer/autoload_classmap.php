@@ -6,5 +6,11 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
-    'App\\App\\Commands\\SiteSetupCommand' => $baseDir . '/src/App/Commands/SiteSetupCommand.php',
+    'App\\Base\\Commands\\Command' => $baseDir . '/src/Base/Commands/Command.php',
+    'App\\Server\\Commands\\InstallPhp' => $baseDir . '/src/Server/Commands/InstallPhp.php',
+    'App\\Site\\Commands\\Command' => $baseDir . '/src/Site/Commands/Command.php',
+    'App\\Site\\Commands\\DbImportCommand' => $baseDir . '/src/Site/Commands/DbImportCommand.php',
+    'App\\Site\\Commands\\DeleteCommand' => $baseDir . '/src/Site/Commands/DeleteCommand.php',
+    'App\\Site\\Commands\\SetupCommand' => $baseDir . '/src/Site/Commands/SetupCommand.php',
+    'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
 );

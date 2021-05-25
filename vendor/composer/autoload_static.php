@@ -100,7 +100,13 @@ class ComposerStaticInitd85abbdd5f7ecae2f0e6a8dcc56d1a36
     );
 
     public static $classMap = array (
-        'App\\App\\Commands\\SiteSetupCommand' => __DIR__ . '/../..' . '/src/App/Commands/SiteSetupCommand.php',
+        'App\\Base\\Commands\\Command' => __DIR__ . '/../..' . '/src/Base/Commands/Command.php',
+        'App\\Server\\Commands\\InstallPhp' => __DIR__ . '/../..' . '/src/Server/Commands/InstallPhp.php',
+        'App\\Site\\Commands\\Command' => __DIR__ . '/../..' . '/src/Site/Commands/Command.php',
+        'App\\Site\\Commands\\DbImportCommand' => __DIR__ . '/../..' . '/src/Site/Commands/DbImportCommand.php',
+        'App\\Site\\Commands\\DeleteCommand' => __DIR__ . '/../..' . '/src/Site/Commands/DeleteCommand.php',
+        'App\\Site\\Commands\\SetupCommand' => __DIR__ . '/../..' . '/src/Site/Commands/SetupCommand.php',
+        'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
