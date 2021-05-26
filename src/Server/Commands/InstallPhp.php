@@ -13,7 +13,6 @@ use Twig_Environment;
 
 class InstallPhp extends Command
 {
-    protected $versions = ['5.6', '7.0', '7.1', '7.2', '7.3'];
     private $twig;
 
     public function __construct(ParameterBag $params, Twig_Environment $twig)
@@ -54,8 +53,9 @@ class InstallPhp extends Command
 
     protected function installPhpPackages($version, InputInterface $input, OutputInterface $output)
     {
-        if (!in_array($version, $this->versions)) {
-          throw new InvalidArgumentException(sprintf('%s is not a valid version of php.  Must be one of ' . implode(', ', $this->versions) . '.', $version));
+        $versions = $this->params->get('server.php_allowed_versions');
+        if (!in_array($version, $versions)) {
+          throw new InvalidArgumentException(sprintf('%s is not a valid version of php.  Must be one of ' . implode(', ', $versions) . '.', $version));
         }
 
         if (file_exists('/usr/bin/php' . $version)) {
