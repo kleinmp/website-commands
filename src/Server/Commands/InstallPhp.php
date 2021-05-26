@@ -70,7 +70,6 @@ class InstallPhp extends Command
           'dev',
           'fpm',
           'gd',
-          'json',
           'mysql',
           'mbstring',
           'opcache',
@@ -85,6 +84,11 @@ class InstallPhp extends Command
           'php-igbinary',
           'php-redis',
         ];
+
+        if ($version < '8.0') {
+          $packages[] = 'php' . $version . '-json';
+        }
+
         $command = ['sudo', 'apt-get', 'install', '-y', 'php' . $version] + $packages;
         $this->runProcess($command);
         $output->writeln(sprintf('Installed php version %s packages: %s', $version, implode(', ', $packages)));
