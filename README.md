@@ -1,7 +1,7 @@
 # Commands for managing a local website.
 
 Setup website
-./bin/console app:setup [name]
+./bin/console site:setup [name]
 
 Delete website
-./bin/console app:delete [name]
+./bin/console site:delete [name]
