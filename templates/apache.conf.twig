@@ -1,4 +1,4 @@
-<Directory {{ webroot }} >
+<Directory  {{ webroot }} >
   Options -Indexes
   Options +FollowSymLinks
   AllowOverride All
@@ -18,8 +18,8 @@
   </Files>
 </Directory>
 <VirtualHost *:80>
-  ServerName {{ domain }}
-  DocumentRoot {{ webroot }}
+  ServerName  {{ domain }}
+  DocumentRoot  {{ webroot }}
   <FilesMatch \.php$>
     SetHandler proxy:fcgi://127.0.0.1:{{ port }}
   </FilesMatch>
