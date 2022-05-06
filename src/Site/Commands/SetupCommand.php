@@ -224,6 +224,8 @@ class SetupCommand extends Command
             $solrVersion = $this->params->get('site.solr_version');
             $solrPath = $this->params->get('site.solr_path');
             $schemaPath = $schemaBasePath . '/solr-conf/' . $solrVersion . '.x';
+            // @todo: solr has it's own drush command for creating the conf now
+            // so this needs to be updated.
             if (is_dir($schemaPath)) {
               $this->runProcess(['sudo', '-u', 'solr', '--', $solrPath, 'create', '-c', $this->getDbName(), '-d', $schemaPath]);
             }
